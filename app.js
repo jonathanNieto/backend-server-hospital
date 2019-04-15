@@ -16,7 +16,8 @@ app.use(bodyParser.json())
 /* importar rutas */
 var appRoutes = require('./routes/app');
 var userRoutes = require('./routes/user');
-var loginRoutes = require('./routes/login'); var hospitalRoutes = require('./routes/hospital');
+var loginRoutes = require('./routes/login');
+var hospitalRoutes = require('./routes/hospital');
 var doctorRoutes = require('./routes/doctor');
 var searchRoutes = require('./routes/search');
 var uploadRoutes = require('./routes/upload');
