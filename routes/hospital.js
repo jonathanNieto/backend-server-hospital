@@ -1,86 +1,78 @@
 var express = require('express');
-var bcrypt = require('bcryptjs');
-var jwt = require('jsonwebtoken');
 
 var mdAuthentication = require('../middlewares/authentication');
 
 var app = express();
 
-var User = require('../models/user');
+var Hospital = require('../models/hospital');
 
-/* rutas */
-
-/* get all users */
-app.get('/', (request, response, next) => {
-
+/* get all hospitals */
+app.get('/', (request, response) => {
     var offset = request.query.offset || 0;
     offset = Number(offset);
     offset = (typeof Number(offset) === 'number') ? offset : 0;
 
-    User.find({}, 'name lastname email img role')
+    Hospital.find({})
         .skip(offset)
         .limit(5)
+        .populate({ path: 'user', select: 'name lastname email' })
         .exec(
-            (error, users) => {
+            (error, hospitals) => {
                 if (error) {
                     return response.status(500).json({
                         OK: false,
-                        msg: 'error loading users',
+                        msg: 'error loading hospitals',
                         errors: error
                     });
                 }
-                User.count({}, (error, count) => {
+                Hospital.count({}, (error, count) => {
                     if (error) {
                         return response.status(500).json({
                             OK: false,
-                            msg: 'error loading users - count',
+                            msg: 'error loading hospitals - counting',
                             errors: error
                         });
                     }
                     response.status(200).json({
                         OK: true,
                         length: count,
-                        users: users,
+                        hospitals: hospitals,
                     });
                 });
-
-            })
+            }
+        );
 });
 
-/* create a new user */
-app.post('/', mdAuthentication.verifyToken, (request, response, next) => {
+/* create a new hospital */
+app.post('/', mdAuthentication.verifyToken, (request, response) => {
     var body = request.body;
-    var user = new User({
+    var hospital = new Hospital({
         name: body.name,
-        lastname: body.lastname,
-        email: body.email,
-        password: bcrypt.hashSync(body.password, 10),
-        img: body.img,
-        role: body.role,
+        user: request.user._id
     });
+    console.log(request.user);
 
-    user.save((error, userSaved) => {
+    hospital.save((error, hospitalSaved) => {
         if (error) {
             return response.status(400).json({
                 OK: false,
-                msg: 'error creating an user',
+                msg: 'error creating a hospital',
                 errors: error
             });
         }
 
         response.status(200).json({
             OK: true,
-            user: userSaved,
-            userToken: request.user
+            hospital: hospitalSaved
         });
     });
 });
 
-/* update an user */
-app.put('/:id', mdAuthentication.verifyToken, (request, response, next) => {
+/* update a hospital */
+app.put('/:id', mdAuthentication.verifyToken, (request, response) => {
     var id = request.params.id;
     var body = request.body;
-    User.findById(id, (error, user) => {
+    Hospital.findById(id, (error, hospital) => {
         if (error) {
             return response.status(500).json({
                 OK: false,
@@ -89,64 +81,59 @@ app.put('/:id', mdAuthentication.verifyToken, (request, response, next) => {
             });
         }
 
-        if (!user) {
+        if (!hospital) {
             return response.status(400).json({
                 OK: false,
-                msg: `user with id: ${id} does not exist`,
-                errors: { message: 'user does not exist' }
+                msg: `hospital with id: ${id} does not exist`,
+                errors: { message: 'hospital does not exist' }
             });
         }
 
-        user.name = body.name;
-        user.lastname = body.lastname;
-        user.email = body.email;
-        user.role = body.role;
+        hospital.name = body.name;
+        hospital.user = request.user._id;
 
-        user.save((error, userUpdated) => {
+        hospital.save((error, hospitalUpdated) => {
             if (error) {
                 return response.status(400).json({
                     OK: false,
-                    msg: 'Error al actualizar usuario',
+                    msg: 'Error updating hospital',
                     errors: error
                 });
             }
 
-            userUpdated.password = ':)';
             response.status(200).json({
                 OK: true,
-                user: userUpdated
-            })
+                hospital: hospitalUpdated
+            });
         });
-
     });
 });
 
-/* delete an user by id*/
-app.delete('/:id', mdAuthentication.verifyToken, (request, response, next) => {
+/* delete an user by id */
+app.delete('/:id', mdAuthentication.verifyToken, (request, response) => {
     var id = request.params.id;
 
-    User.findByIdAndRemove(id, (error, userDeleted) => {
+    Hospital.findByIdAndRemove(id, (error, hospitalDeleted) => {
         if (error) {
             return response.status(500).json({
                 OK: false,
-                msg: 'Error al borrar usuario',
+                msg: 'Error deleting hospital',
                 errors: error
             });
         }
 
-        if (!userDeleted) {
+        if (!hospitalDeleted) {
             return response.status(400).json({
                 OK: false,
-                msg: `user with id: ${id} does not exist`,
-                errors: { message: 'user does not exist' }
+                msg: `hospital with id: ${id} does not exist`,
+                errors: error
             });
         }
 
         response.status(200).json({
             OK: true,
-            user: userDeleted
-        })
+            hospital: hospitalDeleted
+        });
     });
 });
-
 module.exports = app;

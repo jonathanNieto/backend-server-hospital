@@ -1,1 +1,4 @@
 node_modules/
+
+#all images from uploads folder
+uploads/
