@@ -17,7 +17,7 @@ app.get('/', (request, response, next) => {
     offset = Number(offset);
     offset = (typeof Number(offset) === 'number') ? offset : 0;
 
-    User.find({}, 'name lastname email img role')
+    User.find({}, 'name lastname email img role google')
         .skip(offset)
         .limit(5)
         .exec(
@@ -29,7 +29,7 @@ app.get('/', (request, response, next) => {
                         errors: error
                     });
                 }
-                User.count({}, (error, count) => {
+                User.countDocuments({}, (error, count) => {
                     if (error) {
                         return response.status(500).json({
                             OK: false,
@@ -48,7 +48,7 @@ app.get('/', (request, response, next) => {
 });
 
 /* create a new user */
-app.post('/', mdAuthentication.verifyToken, (request, response, next) => {
+app.post('/', (request, response, next) => {
     var body = request.body;
     var user = new User({
         name: body.name,
@@ -67,7 +67,7 @@ app.post('/', mdAuthentication.verifyToken, (request, response, next) => {
                 errors: error
             });
         }
-
+        userSaved.password = ':(';
         response.status(200).json({
             OK: true,
             user: userSaved,
@@ -77,7 +77,7 @@ app.post('/', mdAuthentication.verifyToken, (request, response, next) => {
 });
 
 /* update an user */
-app.put('/:id', mdAuthentication.verifyToken, (request, response, next) => {
+app.put('/:id', [mdAuthentication.verifyToken, mdAuthentication.verifyRoleOrSameUser], (request, response, next) => {
     var id = request.params.id;
     var body = request.body;
     User.findById(id, (error, user) => {
@@ -88,7 +88,6 @@ app.put('/:id', mdAuthentication.verifyToken, (request, response, next) => {
                 errors: error
             });
         }
-
         if (!user) {
             return response.status(400).json({
                 OK: false,
@@ -96,7 +95,6 @@ app.put('/:id', mdAuthentication.verifyToken, (request, response, next) => {
                 errors: { message: 'user does not exist' }
             });
         }
-
         user.name = body.name;
         user.lastname = body.lastname;
         user.email = body.email;
@@ -110,19 +108,17 @@ app.put('/:id', mdAuthentication.verifyToken, (request, response, next) => {
                     errors: error
                 });
             }
-
             userUpdated.password = ':)';
             response.status(200).json({
                 OK: true,
                 user: userUpdated
             })
         });
-
     });
 });
 
 /* delete an user by id*/
-app.delete('/:id', mdAuthentication.verifyToken, (request, response, next) => {
+app.delete('/:id', [mdAuthentication.verifyToken, mdAuthentication.verifyRole], (request, response, next) => {
     var id = request.params.id;
 
     User.findByIdAndRemove(id, (error, userDeleted) => {

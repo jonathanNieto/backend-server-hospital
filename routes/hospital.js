@@ -6,7 +6,7 @@ var app = express();
 
 var Hospital = require('../models/hospital');
 
-/* get all hospitals */
+/* get all hospitals via offset */
 app.get('/', (request, response) => {
     var offset = request.query.offset || 0;
     offset = Number(offset);
@@ -25,7 +25,7 @@ app.get('/', (request, response) => {
                         errors: error
                     });
                 }
-                Hospital.count({}, (error, count) => {
+                Hospital.estimatedDocumentCount({}, (error, count) => {
                     if (error) {
                         return response.status(500).json({
                             OK: false,
@@ -43,6 +43,67 @@ app.get('/', (request, response) => {
         );
 });
 
+/* get all hospitals */
+app.get('/all', (request, response) => {
+
+    Hospital.find({})
+        .populate({ path: 'user', select: 'name lastname email' })
+        .exec(
+            (error, hospitals) => {
+                if (error) {
+                    return response.status(500).json({
+                        OK: false,
+                        msg: 'error loading hospitals',
+                        errors: error
+                    });
+                }
+                Hospital.estimatedDocumentCount({}, (error, count) => {
+                    if (error) {
+                        return response.status(500).json({
+                            OK: false,
+                            msg: 'error loading hospitals - counting',
+                            errors: error
+                        });
+                    }
+                    response.status(200).json({
+                        OK: true,
+                        length: count,
+                        hospitals: hospitals,
+                    });
+                });
+            }
+        );
+});
+
+/* get one hospital */
+app.get('/:id', (request, response) => {
+    var id = request.params.id;
+    Hospital.findById(id)
+        .populate({ path: 'user', select: 'name lastname email' })
+        .exec(
+            (error, hospital) => {
+                if (error) {
+                    return response.status(500).json({
+                        OK: false,
+                        msg: 'error finding hospital',
+                        errors: error
+                    });
+                }
+                if (!hospital) {
+                    return response.status(400).json({
+                        OK: false,
+                        msg: `error finding hospital, id: ${id} does not exist`,
+                        errors: { message: 'hospital does not exist' }
+                    });
+                }
+                response.status(200).json({
+                    OK: true,
+                    hospital: hospital,
+                });
+            }
+        );
+});
+
 /* create a new hospital */
 app.post('/', mdAuthentication.verifyToken, (request, response) => {
     var body = request.body;
@@ -50,7 +111,6 @@ app.post('/', mdAuthentication.verifyToken, (request, response) => {
         name: body.name,
         user: request.user._id
     });
-    console.log(request.user);
 
     hospital.save((error, hospitalSaved) => {
         if (error) {

@@ -23,3 +23,34 @@ exports.verifyToken = function (request, response, next) {
         }); */
     });
 }
+
+/* verify admin role */
+exports.verifyRole = function (request, response, next) {
+    var user = request.user;
+    if (user.role === 'ADMIN_ROLE') {
+        next();
+        return;
+    } else {
+        return response.status(401).json({
+            OK: false,
+            msg: 'invalid role',
+            errors: {message: 'You are not an admin'}
+        });
+    }
+}
+
+/* verify admin role or same user */
+exports.verifyRoleOrSameUser = function (request, response, next) {
+    var user = request.user;
+    var id = request.params.id;
+    if (user.role === 'ADMIN_ROLE' || user._id === id) {
+        next();
+        return;
+    } else {
+        return response.status(401).json({
+            OK: false,
+            msg: 'invalid user',
+            errors: {message: 'You are not this user or you do not have an admin role'}
+        });
+    }
+}

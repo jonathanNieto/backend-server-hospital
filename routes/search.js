@@ -14,13 +14,13 @@ app.get('/collection/:table/:search', (request, response, next) => {
     var promise;
     switch (table) {
         case 'hospitals':
-            promise = searchHospitals(search, regex);
+            promise = searchHospitals(regex);
             break;
         case 'doctors':
-            promise = searchHospitals(search, regex);
+            promise = searchDoctors(regex);
             break;
         case 'users':
-            promise = searchHospitals(search, regex);
+            promise = searchUsers(regex);
             break;
 
         default:
@@ -46,7 +46,7 @@ app.get('/hospital/:search', (request, response, next) => {
     var search = request.params.search;
     var regex = new RegExp(search, 'i');
 
-    searchHospitals(search, regex)
+    searchHospitals(regex)
         .then((hospitals) => {
             response.status(200).json({
                 OK: true,
@@ -61,7 +61,7 @@ app.get('/doctor/:search', (request, response, next) => {
     var search = request.params.search;
     var regex = new RegExp(search, 'i');
 
-    searchDoctors(search, regex)
+    searchDoctors(regex)
         .then((doctors) => {
             response.status(200).json({
                 OK: true,
@@ -76,7 +76,7 @@ app.get('/user/:search', (request, response, next) => {
     var search = request.params.search;
     var regex = new RegExp(search, 'i');
 
-    searchUsers(search, regex)
+    searchUsers(regex)
         .then((users) => {
             response.status(200).json({
                 OK: true,
@@ -91,7 +91,7 @@ app.get('/all/:search', (request, response, next) => {
     var search = request.params.search;
     var regex = new RegExp(search, 'i');
 
-    Promise.all([searchHospitals(search, regex), searchDoctors(search, regex), searchUsers(search, regex)])
+    Promise.all([searchHospitals(regex), searchDoctors(regex), searchUsers(regex)])
         .then((data) => {
             response.status(200).json({
                 OK: true,
@@ -102,10 +102,10 @@ app.get('/all/:search', (request, response, next) => {
         });
 });
 
-function searchHospitals(search, regex) {
+function searchHospitals(regex) {
     return new Promise((resolve, reject) => {
         Hospital.find({ name: regex })
-            .populate({ path: 'user', select: 'name lastname email' })
+            .populate({ path: 'user', select: 'name lastname email img' })
             .exec(
                 (error, hospitals) => {
                     if (error) {
@@ -117,10 +117,10 @@ function searchHospitals(search, regex) {
     });
 }
 
-function searchDoctors(search, regex) {
+function searchDoctors(regex) {
     return new Promise((resolve, reject) => {
         Doctor.find({ name: regex })
-            .populate({ path: 'user', select: 'name lastname email' })
+            .populate({ path: 'user', select: 'name lastname email img' })
             .populate({ path: 'hospital', select: 'name' })
             .exec(
                 (error, doctors) => {
@@ -134,9 +134,9 @@ function searchDoctors(search, regex) {
 }
 
 /* make searches with name or email */
-function searchUsers(search, regex) {
+function searchUsers(regex) {
     return new Promise((resolve, reject) => {
-        User.find({}, 'name lastname email')
+        User.find({}, 'name lastname email img')
             .or([
                 { name: regex },
                 { email: regex }])

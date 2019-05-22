@@ -26,7 +26,7 @@ app.get('/', (request, response, next) => {
                         errors: error
                     });
                 }
-                Doctor.count({}, (error, count) => {
+                Doctor.countDocuments({}, (error, count) => {
                     if (error) {
                         return response.status(500).json({
                             OK: false,
@@ -44,6 +44,38 @@ app.get('/', (request, response, next) => {
             });
 });
 
+/* get one doctor */
+app.get('/:id', (request, response, next) => {
+    var id = request.params.id;
+    Doctor.findById(id)
+        .populate({ path: 'user', select: 'name lastname email' })
+        .populate({ path: 'hospital'})
+        .exec(
+            (error, doctor) => {
+                if (error) {
+                    return response.status(500).json({
+                        OK: false,
+                        msg: 'error finding an doctor',
+                        errors: error
+                    });
+                }
+
+                if (!doctor) {
+                    return response.status(400).json({
+                        OK: false,
+                        msg: `doctor with id: ${id} does not exist`,
+                        errors: { message: 'doctor does not exist' }
+                    });
+                }
+
+                response.status(200).json({
+                    OK: true,
+                    doctor
+                });
+
+            });
+});
+
 /* create a new doctor */
 app.post('/', mdAuthentication.verifyToken, (request, response, next) => {
     var body = request.body;
@@ -51,7 +83,7 @@ app.post('/', mdAuthentication.verifyToken, (request, response, next) => {
         name: body.name,
         lastname: body.lastname,
         user: request.user._id,
-        hospital: body.hospitalId
+        hospital: body.hospitalId 
     });
 
     doctor.save((error, doctorSaved) => {
